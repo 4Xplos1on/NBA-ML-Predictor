@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timedelta # Import to target TODAY
 import json
-
+ 
 # Get today's date, and subtract one day to have up-to-date data
 today = datetime.now()
 yesterday = datetime.now() - timedelta(days=1)
