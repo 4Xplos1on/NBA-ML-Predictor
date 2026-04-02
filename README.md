@@ -1,7 +1,7 @@
 # NBA ML Predictor
 
 Goal: Build a Machine Learning model to predict NBA game outcomes. This log tracks my learning, development process, challenges, and decision impacts.
-
+Note: USE OF AI IS STRICTLY FOR HELP AND GUIDANCE, NOT MINDLESS PASTING
 ## Session 1: Initial Scraper & Security Roadblocks
 
 Objective: Scrape daily NBA box scores from Basketball-Reference to build a training dataset.
