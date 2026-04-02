@@ -2,7 +2,7 @@
 
 Goal: Build a Machine Learning model to predict NBA game outcomes. This log tracks my learning, development process, challenges, and decision impacts.
 
-## 'Session 1: Initial Scraper & Security Roadblocks'
+## Session 1: Initial Scraper & Security Roadblocks
 
 Objective: Scrape daily NBA box scores from Basketball-Reference to build a training dataset.
 
@@ -17,7 +17,7 @@ Instead of trying to bypass security, I decided to migrate to structured API dat
 
 ---
 
-## 'Session 2: API Research & Networking Bottlenecks'
+## Session 2: API Research & Networking Bottlenecks
 
 Objective: Use professional API endpoints to retrieve structured JSON data for player stats.
 
