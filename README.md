@@ -43,7 +43,7 @@ Pivoting to a static dataset (CSV) from Kaggle. This eliminates all network/fire
 
 ---
 
-## `What I’ve Learned So Far`
+## What I’ve Learned So Far
 
 - Websites hate bots: Most big sites (like the NBA) have security like Akamai that is very good at spotting and "tarpitting" basic Python scripts.  
 - School Wi-Fi is strict: If your script can't connect, it’s usually the school firewall. A VPN or `verify=False` helps on managed networks.  
