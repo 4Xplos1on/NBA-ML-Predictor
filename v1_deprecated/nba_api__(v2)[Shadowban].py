@@ -1,28 +1,35 @@
 import pandas as pd
 from nba_api.stats.endpoints import playergamelog
 
-print("Testing official NBA API through VPN...")
+# Test NBA API connection
+print("Testing official NBA API through VPN")
 
+# Headers to help request go through
 custom_headers = {
     'Host': 'stats.nba.com',
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-    'Accept': 'application/json, text/plain, */*',
-    'Accept-Language': 'en-US,en;q=0.9',
+    'User-Agent': 'Mozilla/5.0',
+    'Accept': 'application/json',
     'Referer': 'https://www.nba.com/',
     'Origin': 'https://www.nba.com/'
 }
 
 try:
+    # Get player game data
     log = playergamelog.PlayerGameLog(
-        player_id='2544', 
+        player_id='2544',
         season='2023-24',
         headers=custom_headers,
         timeout=30
     )
     
+    # Convert to dataframe
     df = log.get_data_frames()[0]
-    print(f"\nSuccess! Downloaded {len(df)} games.")
+    
+    # Show result
+    print("Success")
     print(df[['MATCHUP', 'WL', 'PTS']].head())
 
 except Exception as e:
-    print(f"\nConnection failed. Error: {e}")
+    # Show error if it fails
+    print("Connection failed")
+    print(e)
