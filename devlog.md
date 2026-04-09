@@ -2,102 +2,187 @@
 
 ---
 
-## Session 1: The Scraper Wall & Security Roadblocks
+## Session 1 & 2: Data Sourcing & Network Limitations
 
 **Objective:**  
-Build a training dataset by scraping daily NBA box scores from Basketball-Reference.
-
-**What I Built:**  
-`web-scraper(v.1)[Timeout].py` using `requests` and `BeautifulSoup`.
-
-**The Issue:**  
-Immediately hit a `403 Forbidden` error.  
-The site uses Cloudflare to tarpit bots, making standard HTML scraping nearly impossible without advanced (and slow) bypasses.
-
-**The Pivot:**  
-Instead of fighting bot protections, I moved toward structured API data.  
-It’s cleaner, more reliable, and allows the Surface Pro 9 to focus on logic rather than connection handling.
+Secure a reliable stream of daily NBA box score data to train the model.
 
 ---
 
-## Session 2: API Research & Network Bottlenecks
+### The Approach & Hurdles
 
-**Objective:**  
-Use professional endpoints to retrieve structured JSON data.
+**Web Scraping:**  
+Initially built a scraper for Basketball-Reference using BeautifulSoup.  
+Immediately hit a `403 Forbidden` wall due to Cloudflare anti-bot protections.
 
-**What I Built:**  
-Two clients:
-- `nba_api__(v.2)[Timeout].py` *(official `nba_api`)*  
-- `balldontlie_api(v.2.1)[401].py` *(third-party API)*  
+**Third-Party APIs:**  
+Tried the balldontlie API, but the specific stats endpoint I needed was behind a paywall.
 
-**The Issues:**
-
-**Network Security:**  
-Encountered `SSL: HANDSHAKE_FAILURE` due to school firewall interference.  
-**Fix:** Used a VPN and `verify=False`.
-
-**Official API:**  
-Request accepted but no response returned → `ReadTimeoutError`.  
-Likely silent blocking of scripted traffic.
-
-**Third-Party API:**  
-Connected successfully, but hit `401 Unauthorized`.  
-Required `stats` endpoint is behind a paywall.
-
-**The Pivot:**  
-Switched to a static dataset (`Kaggle CSV`) to eliminate network constraints and focus fully on the ML pipeline.
+**Official NBA API:**  
+Encountered `SSL: HANDSHAKE_FAILURE` due to school firewall restrictions.  
+Bypassed with a VPN, but then hit silent timeout blocks on scripted traffic.
 
 ---
 
-## Session 3: Feature Engineering & Production
+### The Pivot
 
-**Objective:**  
-Move from raw data to a functional, automated prediction system.
+Instead of spending weeks fighting network security, I pivoted to a static historical dataset to build and validate the core Machine Learning pipeline first.  
+Live API integration will be reintroduced once the model logic is fully stable.
 
 ---
 
-### The Breakthroughs
+## Session 3: Feature Engineering & Baseline Model
 
-**Differentials vs. Raw Stats:**  
-Raw stats (`points`, `rebounds`) were too noisy.  
-Switched to 5-game rolling differentials:  
-`(Home Team Avg - Away Team Avg)`  
+**Objective:**  
+Transform raw box scores into predictive signals and train a baseline XGBoost model.
 
-→ Model learns performance gap instead of memorizing team names.
+---
 
-**Fixing Overfitting:**  
-Initial model showed inflated accuracy (memorization).  
+### Engineering Hurdles
+
+**Noise in Raw Data:**  
+Raw stats like points and rebounds were too noisy.  
+Engineered 5-game rolling differentials:
+
+```
+(Home Avg - Away Avg)
+```
+
+→ Allows the model to learn performance gaps instead of memorizing teams.
+
+**Overfitting:**  
+Initial model showed artificially high accuracy (memorization).
 
 Applied constraints:
-- `max_depth = 5`  
-- `min_samples_leaf = 20`  
-
-→ Result: `59.4%` cross-validation accuracy.
+- `max_depth = 5`
+- `min_samples_leaf = 20`
 
 ---
 
-### Production & Deployment
+### Result
 
-**Serialization:**  
-Used `joblib` to freeze the trained model (`nba_model.pkl`).  
-→ No retraining required  
-→ Predictions run in milliseconds  
-
-**Debugging:**  
-- Fixed `ValueError` caused by feature mismatch  
-- Synced training + inference features  
-
-**File Pathing:**  
-- Issue after moving to `/src`  
-- Fixed using `os.path.join` + `BASE_DIR`
+- `59.4%` cross-validation accuracy  
+- Model serialized using `joblib` for fast inference
 
 ---
 
-## Status
+## Session 4: Building the Automated Processor (v2)
 
-- System fully automated  
-- Pipeline:  
-  `Data → Features → Model → Predictions`  
+**Objective:**  
+Build `processor.py` to transform raw historical logs into clean matchup differentials.
 
-- First successful prediction slate:  
-  `April 6, 2026`
+---
+
+### Key Data Science Decision: EWMA vs Rolling Average
+
+Used Exponentially Weighted Moving Average (EWMA):
+
+```
+lambda x: x.shift(1).ewm(span=5).mean()
+```
+
+**Why:**  
+- Rolling averages treat all past games equally  
+- EWMA prioritizes recent games → better momentum capture
+
+**Critical Detail:**  
+`.shift(1)` prevents data leakage by ensuring a game never includes its own stats.
+
+---
+
+### Engineering Hurdles
+
+**Data Leakage Prevention:**  
+Strict `.shift(1)` implementation to avoid fake accuracy.
+
+**Pipeline Alignment:**  
+- Synced team ID formats
+- Handled NaN values at season starts
+
+---
+
+## Session 5: Live API Migration & Pipeline Hardening
+
+**Objective:**  
+Reconnect live NBA API, test real predictions, and build logging system.
+
+---
+
+### Engineering Hurdles
+
+**API Deprecation:**  
+`ScoreboardV2` became unreliable.  
+→ Migrated to `ScoreboardV3` (nested JSON parsing required)
+
+**Type-Casting Failures:**  
+- API returns IDs as strings: `"1610612747"`
+- CSV stores integers
+
+**Fix:**  
+```
+int(team_id)
+```
+
+---
+
+### Predictor Logic
+
+- Engine named **NBA_Predictor**
+- `THRESHOLD = 0.65`
+  - `BET` → high-confidence picks
+  - `PASS` → low-confidence games
+
+**Anti-Duplicate Logger:**  
+Prevents duplicate predictions using game ID checks.
+
+---
+
+## Session 6: Crossing the Vegas Baseline
+
+**Objective:**  
+Push model accuracy beyond ~65–67% Vegas baseline.
+
+---
+
+### New Features
+
+**eFG% (Effective FG%)**  
+Weights 3-pointers correctly.
+
+**Fatigue Context (`IS_B2B`)**  
+Back-to-back game indicator.
+
+**Multi-Window Averages**  
+- 5-game (short-term)
+- 10-game (medium-term)
+
+**Advanced Context**  
+- `ELO_DIFF` → team strength
+- `ALTITUDE_FLAG` → Denver/Utah impact
+
+---
+
+### Engineering Hurdle: Class Imbalance
+
+Home teams win ~58% of games → model bias.
+
+**Fix:** Dynamic class weighting
+
+```python
+neg = (y_train == 0).sum()
+pos = (y_train == 1).sum()
+scale_pos_weight = neg / pos
+```
+
+→ Penalizes missed upsets more heavily
+
+---
+
+## Final Status
+
+- Fully automated pipeline
+- Stable live predictions
+- No critical errors
+
+**Final Holdout Accuracy: `69.0%`**  
+→ Successfully exceeds Vegas baseline
