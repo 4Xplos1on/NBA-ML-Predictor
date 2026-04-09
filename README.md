@@ -1,4 +1,4 @@
-# NBA ML Predictor — Dakota
+# NBA ML Predictor
 
 ---
 
@@ -33,7 +33,7 @@ An XGBoost classification model trained on:
 | Version | Algorithm | Accuracy | Status |
 |---------|-----------|----------|--------|
 | v1 | Random Forest | 59.4% CV | Complete → archived to `v1_legacy/` |
-| v2 (Dakota) | XGBoost | 69% holdout | Active |
+| v2 (ML Model ) | XGBoost | 69% holdout | Active |
 
 **Verdict Logic:**  
 - Issues a `"BET"` verdict only when win probability > `65%`  
@@ -46,7 +46,7 @@ An XGBoost classification model trained on:
 
 v1 was a basic Random Forest trained on a static Kaggle CSV. It had hard-coded absolute paths, no live prediction, and used `ScoreboardV2` for game data — which is now deprecated for 2025-26 season data. It got to 59.4% cross-validation accuracy before being archived.
 
-v2 (Dakota) is a full rebuild: live data from the NBA API, XGBoost, relative pathing, a proper prediction engine, and a logging system to track real-world accuracy over time.
+v2 (ML Model ) is a full rebuild: live data from the NBA API, XGBoost, relative pathing, a proper prediction engine, and a logging system to track real-world accuracy over time.
 
 ---
 
@@ -136,10 +136,10 @@ python src/main-app.py
 
 ## Real-World Context
 
-Dakota started as a contrarian model — flagging picks on the Wizards and Celtics in April 2026 that Vegas was fading due to resting players. After expanding the feature set to include eFG%, win streaks, back-to-back flags, ELO ratings, and a 10-game rolling window, the model crossed the Vegas baseline.
+The ML Model started as a contrarian model — flagging picks on the Wizards and Celtics in April 2026 that Vegas was fading due to resting players. After expanding the feature set to include eFG%, win streaks, back-to-back flags, ELO ratings, and a 10-game rolling window, the model crossed the Vegas baseline.
 
 Vegas consensus accuracy: ~65–67%  
-Dakota holdout accuracy: **69%**
+The ML Model  holdout accuracy: **69%**
 
 ---
 
@@ -148,5 +148,5 @@ Dakota holdout accuracy: **69%**
 - End-to-end ML pipeline operational  
 - Live predictions with BET/PASS verdict and confidence threshold  
 - Persistent logging with duplicate prevention  
-- v1 archived, v2 (Dakota) active  
+- v1 archived, v2 (ML Model ) active  
 - Benchmark: 69% holdout — above the Vegas 65–67% baseline
