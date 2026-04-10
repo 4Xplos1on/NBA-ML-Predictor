@@ -139,7 +139,7 @@ python main.py
 
 ## Real-World Context
 
-The ML Model started as a contrarian model — flagging picks on the Wizards and Celtics in April 2026 that Vegas was fading due to resting players. After expanding the feature set to include eFG%, win streaks, back-to-back flags, ELO ratings, and a 10-game rolling window, the model crossed the Vegas baseline.
+The ML Model started as a simple model — flagging picks on the Wizards and Celtics in April 2026 that Vegas was fading due to resting players. After expanding the feature set to include eFG%, win streaks, back-to-back flags, ELO ratings, and a 10-game rolling window, the model crossed some of the Vegas baselines.
 
 Vegas consensus accuracy: ~65–67%  
 The ML Model  holdout accuracy: **69%**
@@ -152,4 +152,4 @@ The ML Model  holdout accuracy: **69%**
 - Live predictions with BET/PASS verdict and confidence threshold  
 - Persistent logging with duplicate prevention  
 - v1 archived, v2 (ML Model ) active  
-- Benchmark: 69% holdout — above the Vegas 65–67% baseline
+- Benchmark: 69% holdout — above the some of the Vegas baselines 65–67% 
