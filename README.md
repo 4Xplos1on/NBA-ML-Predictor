@@ -107,6 +107,13 @@ The NBA API returns team IDs as strings. The processed CSV stores them as intege
 
 ## How to Run
 
+### Requirements
+- Python 3.10 or higher — [download here](https://www.python.org/downloads/)
+
+> During installation, check **"Add Python to PATH"** — without this, none of the commands below will work.
+
+---
+
 **1. Download and extract the zip, open PowerShell or Terminal, and navigate to the folder:**
 ```bash
 cd "C:\path\to\NBA-ML-Predictor-main"
