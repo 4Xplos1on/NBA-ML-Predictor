@@ -105,7 +105,7 @@ The NBA API returns team IDs as strings. The processed CSV stores them as intege
 
 ---
 
-## How to Run
+## How to Run ( WORKS ONLY ON WINDOWS RIGHT NOW)
 
 ### Requirements
 - Python 3.10 or higher — [download here](https://www.python.org/downloads/)
