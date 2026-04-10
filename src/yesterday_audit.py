@@ -69,7 +69,9 @@ def run():
             res = "✅" if pick == actual else "❌"
             if res == "✅":
                 hits += 1
-            table.append([g["HOME_TEAM_ID"], g["VISITOR_TEAM_ID"], pick, actual, res])
+            home = g.get("HOME_TEAM_ABBREVIATION") or g.get("HOME_TEAM_CITY") or g["HOME_TEAM_ID"]
+            away = g.get("VISITOR_TEAM_ABBREVIATION") or g.get("VISITOR_TEAM_CITY") or g["VISITOR_TEAM_ID"]
+            table.append([home, away, pick, actual, res])
         except:
             continue
 
