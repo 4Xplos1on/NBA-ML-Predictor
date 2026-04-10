@@ -107,30 +107,26 @@ The NBA API returns team IDs as strings. The processed CSV stores them as intege
 
 ## How to Run
 
-**1. Install Dependencies**
+**1. Download and extract the zip, open PowerShell or Terminal, and navigate to the folder:**
 ```bash
-pip install -r requirements.txt
+cd "C:\path\to\NBA-ML-Predictor-main"
+```
+Tip: copy the path directly from File Explorer's address bar.
+
+**2. Launch the hub:**
+```bash
+python main.py
 ```
 
-**2. Download / refresh raw data**
-```bash
-python src/nba_api-datareq.py
-```
+**3. Select option `1` (SETUP) — installs everything and trains the model. Takes a few minutes.**
 
-**3. Process into matchups**
-```bash
-python src/processor.py
-```
+**4. After setup, pick what you want to do:**
+- `2` — re-sync data and re-train
+- `3` — check yesterday's picks
+- `4` — predict tonight's games
+- `5` — exit
 
-**4. Run Dakota (live predictor)**
-```bash
-python src/nba-predict_v2.py
-```
-
-Or use the hub:
-```bash
-python src/main-app.py
-```
+> The trained model isn't included in the download. Always run option `1` first.
 
 ---
 
