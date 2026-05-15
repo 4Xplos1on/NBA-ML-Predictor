@@ -44,7 +44,7 @@ An XGBoost classification model trained on:
 
 ## How It Started (v1)
 
-v1 was a basic Random Forest trained on a static Kaggle CSV. It had hard-coded absolute paths, no live prediction, and used `ScoreboardV2` for game data — which is now deprecated for 2025-26 season data. It got to 59.4% cross-validation accuracy before being archived.
+v1 was a basic Random Forest trained on a static Kaggle CSV. It had hard-coded absolute paths, no live prediction, and used `ScoreboardV2` for game data, which is now deprecated for 2025-26 season data. It got to 59.4% cross-validation accuracy before being archived.
 
 v2 (ML Model ) is a full rebuild: live data from the NBA API, XGBoost, relative pathing, a proper prediction engine, and a logging system to track real-world accuracy over time.
 
