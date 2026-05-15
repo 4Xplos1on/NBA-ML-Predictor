@@ -57,7 +57,7 @@ v2 (ML Model ) is a full rebuild: live data from the NBA API, XGBoost, relative 
 
 **Data:** 3 seasons of live game logs pulled from `stats.nba.com` via `LeagueGameLog` (2023-24, 2024-25, 2025-26). Raw data: ~7,300 rows. Processed matchups: ~3,500 rows.
 
-**Model:** `XGBClassifier` — 300 trees, learning rate 0.03, max depth 5. `scale_pos_weight` dynamically calculated from class balance to prevent the model from defaulting to "home win" on every prediction.
+**Model:** `XGBClassifier` 300 trees, learning rate 0.03, max depth 5. `scale_pos_weight` dynamically calculated from class balance to prevent the model from defaulting to "home win" on every prediction.
 
 **Live Prediction:** Uses `ScoreboardV3` (migrated from deprecated `ScoreboardV2`) to fetch today's games, looks up each team's rolling stats from the processed CSV, and outputs a probability + BET/PASS verdict.
 
