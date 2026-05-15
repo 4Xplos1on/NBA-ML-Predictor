@@ -77,7 +77,7 @@ v2 (ML Model ) is a full rebuild: live data from the NBA API, XGBoost, relative 
 | `STL_DIFF` | Defensive pressure gap |
 | `BLK_DIFF` | Paint protection gap |
 | `*_10G_DIFF` | Same stats over 10-game window (medium-term form) |
-| `REST_DAYS_DIFF` | Rest advantage — back-to-backs heavily impact performance |
+| `REST_DAYS_DIFF` | Rest advantage: back-to-backs heavily impact performance |
 
 Total: 19 features across two rolling windows + rest.
 
@@ -92,7 +92,7 @@ Comparing Team A vs Team B directly is more predictive than isolated numbers. Re
 Exponentially Weighted Moving Average weights recent games more heavily. A team that just went 4-1 after a cold streak reads differently than a team that went 4-1 two months ago.
 
 **Chronological Splits:**  
-Sports data cannot be randomly shuffled for train/test splits. Training on future games to predict the past is data leakage — split by date instead.
+Sports data cannot be randomly shuffled for train/test splits. Training on future games to predict the past is data leakage, split by date instead.
 
 **`.shift(1)` Prevents Leakage:**  
 The rolling average is shifted forward one row so a game never includes its own stats when the model trains. Without this, accuracy looks inflated but the model is cheating.
