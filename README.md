@@ -124,7 +124,7 @@ cd "C:\path\to\NBA-ML-Predictor-main"
 python main.py
 ```
 
-**3. Select option `1` (SETUP) — installs everything and trains the model. Takes a few minutes.**
+**3. Select option `1` (SETUP): installs everything and trains the model. Takes a few minutes.**
 
 **4. After setup, pick what you want to do:**
 - `2` — re-sync data and re-train
