@@ -3,7 +3,7 @@
 ---
 
 **Goal:**  
-Build a machine learning pipeline that predicts NBA game outcomes — and actually test whether it works against real Vegas lines.
+Build a machine learning pipeline that predicts NBA game outcomes, and actually test whether it works against real Vegas lines.
 
 ## TL;DR / Executive Summary
 
@@ -17,7 +17,7 @@ An XGBoost classification model trained on:
 - Fatigue context (back-to-backs, rest days)
 
 **The Result:**  
-`69.0%` holdout accuracy — exceeding the Vegas baseline (~65–67%) by identifying inefficiencies in scheduling fatigue and shooting efficiency.
+`69.0%` holdout accuracy, exceeding the Vegas baseline (~65–67%) by identifying inefficiencies in scheduling fatigue and shooting efficiency.
 
 **Tech Stack:**  
 - Python  
