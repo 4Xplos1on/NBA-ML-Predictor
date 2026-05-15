@@ -42,7 +42,7 @@ An XGBoost classification model trained on:
 
 ---
 
-## How It Started — v1
+## How It Started (v1)
 
 v1 was a basic Random Forest trained on a static Kaggle CSV. It had hard-coded absolute paths, no live prediction, and used `ScoreboardV2` for game data — which is now deprecated for 2025-26 season data. It got to 59.4% cross-validation accuracy before being archived.
 
@@ -108,9 +108,9 @@ The NBA API returns team IDs as strings. The processed CSV stores them as intege
 ## How to Run ( WORKS ONLY ON WINDOWS RIGHT NOW)
 
 ### Requirements
-- Python 3.10 or higher — [download here](https://www.python.org/downloads/)
+- Python 3.10 or higher [download here](https://www.python.org/downloads/)
 
-> During installation, check **"Add Python to PATH"** — without this, none of the commands below will work.
+> During installation, check **"Add Python to PATH"**, without this, none of the commands below will work.
 
 ---
 
@@ -118,7 +118,6 @@ The NBA API returns team IDs as strings. The processed CSV stores them as intege
 ```bash
 cd "C:\path\to\NBA-ML-Predictor-main"
 ```
-Tip: copy the path directly from File Explorer's address bar.
 
 **2. Launch the hub:**
 ```bash
@@ -139,7 +138,7 @@ python main.py
 
 ## Real-World Context
 
-The ML Model started as a simple model — flagging picks on the Wizards and Celtics in April 2026 that Vegas was fading due to resting players. After expanding the feature set to include eFG%, win streaks, back-to-back flags, ELO ratings, and a 10-game rolling window, the model crossed some of the Vegas baselines.
+The ML Model started as a simple model, flagging picks on the Wizards and Celtics in April 2026 that Vegas was fading due to resting players. After expanding the feature set to include eFG%, win streaks, back-to-back flags, ELO ratings, and a 10-game rolling window, the model crossed some of the Vegas baselines.
 
 Vegas consensus accuracy: ~65–67%  
 The ML Model  holdout accuracy: **69%**
@@ -152,4 +151,4 @@ The ML Model  holdout accuracy: **69%**
 - Live predictions with BET/PASS verdict and confidence threshold  
 - Persistent logging with duplicate prevention  
 - v1 archived, v2 (ML Model ) active  
-- Benchmark: 69% holdout — above the some of the Vegas baselines 65–67% 
+- Benchmark: 69% holdout: above the some of the Vegas baselines 65–67% 
