@@ -1,188 +1,89 @@
-## Development Log: NBA ML Predictor
+# NBA ML Predictor
+
+An end-to-end machine learning pipeline that predicts NBA game outcomes using rolling team differentials, Elo ratings, and fatigue context. Trained on three seasons of live data from the NBA API, it issues high-confidence betting verdicts against a 65% probability threshold.
+
+Holdout accuracy: **69.0%** (Vegas consensus sits around 65-67% for straight-up winner prediction).
+
+**Built with:** Python, Pandas, XGBoost, scikit-learn, NBA API
 
 ---
 
-## Session 1 & 2: Data Sourcing & Network Limitations
+## How It Works
 
-**Objective:**  
-Secure a reliable stream of daily NBA box score data to train the model.
+**Pipeline:** `nba_api-datareq.py` -> `processor.py` -> `nba-predict_v2.py` -> `predictions_log.csv`
 
----
+1. **Data pull** -- Three seasons of game logs (2023-24 through 2025-26) fetched from `stats.nba.com` via `LeagueGameLog`. ~7,300 raw rows become ~3,500 processed matchups.
 
-### The Approach & Hurdles
+2. **Feature engineering** -- For each matchup, the pipeline computes rolling differentials (home minus away) across 19 features using two time windows:
 
-**Web Scraping:**  
-Initially built a scraper for Basketball-Reference using BeautifulSoup.  
-Immediately hit a `403 Forbidden` wall due to Cloudflare anti-bot protections.
+   | Feature | What it captures |
+   |---------|-----------------|
+   | `PTS_DIFF` | Scoring gap (5-game EWMA) |
+   | `REB_DIFF` | Rebounding gap (5-game EWMA) |
+   | `AST_DIFF` | Ball movement gap (5-game EWMA) |
+   | `TOV_DIFF` | Turnover discipline (5-game EWMA) |
+   | `FG_PCT_DIFF` | Shooting efficiency (5-game EWMA) |
+   | `FG3_PCT_DIFF` | 3-point shooting (5-game EWMA) |
+   | `PLUS_MINUS_DIFF` | Net scoring (offense + defense combined) |
+   | `STL_DIFF` | Defensive pressure |
+   | `BLK_DIFF` | Paint protection |
+   | `*_10G_DIFF` | All of the above over a 10-game window |
+   | `REST_DAYS_DIFF` | Rest advantage (back-to-backs matter) |
 
-**Third-Party APIs:**  
-Tried the balldontlie API, but the specific stats endpoint I needed was behind a paywall.
+3. **Model** -- `XGBClassifier` with 300 trees, learning rate 0.03, max depth 5. `scale_pos_weight` is calculated dynamically from class balance to counteract the ~58% home-win base rate.
 
-**Official NBA API:**  
-Encountered `SSL: HANDSHAKE_FAILURE` due to school firewall restrictions.  
-Bypassed with a VPN, but then hit silent timeout blocks on scripted traffic.
-
----
-
-### The Pivot
-
-Instead of spending weeks fighting network security, I pivoted to a static historical dataset to build and validate the core Machine Learning pipeline first.  
-Live API integration will be reintroduced once the model logic is fully stable.
-
----
-
-## Session 3: Feature Engineering & Baseline Model
-
-**Objective:**  
-Transform raw box scores into predictive signals and train a baseline XGBoost model.
+4. **Prediction** -- Fetches today's games via `ScoreboardV3`, looks up each team's current rolling stats, and outputs a win probability. Games above the 65% confidence threshold get a `BET` verdict; everything else gets `PASS`. All picks are logged to `predictions_log.csv` with duplicate prevention.
 
 ---
 
-### Engineering Hurdles
+## Technical Decisions Worth Noting
 
-**Noise in Raw Data:**  
-Raw stats like points and rebounds were too noisy.  
-Engineered 5-game rolling differentials:
+**Differentials over raw stats.** Comparing Team A vs Team B directly is more predictive than feeding isolated team numbers. The model learns matchup dynamics, not team identities.
 
-```
-(Home Avg - Away Avg)
-```
+**EWMA over simple rolling averages.** Exponentially weighted moving averages put more weight on recent games. A team coming off a 4-1 streak reads differently than one that went 4-1 two months ago.
 
-→ Allows the model to learn performance gaps instead of memorizing teams.
+**Chronological train/test split.** Sports data is time-ordered. Random shuffling for train/test would let the model train on future games to predict the past. That's data leakage, not accuracy.
 
-**Overfitting:**  
-Initial model showed artificially high accuracy (memorization).
+**`.shift(1)` to prevent same-game leakage.** Every rolling average is shifted forward one row so a game's own stats never appear in its own features. Without this, accuracy looks great but the model is cheating.
 
-Applied constraints:
-- `max_depth = 5`
-- `min_samples_leaf = 20`
+**Dynamic class weighting.** Home teams win ~58% of NBA games. Without correction, the model learns to just predict "home win" every time. `scale_pos_weight = neg_count / pos_count` penalizes missed upsets proportionally.
+
+**ScoreboardV3 migration.** The original `ScoreboardV2` endpoint was deprecated for 2025-26 data. V3 returns nested JSON (`['scoreboard']['games']`) instead of flat DataFrames, which required rewriting the game-fetching logic. Team IDs also come back as strings instead of integers -- without explicit `int()` casting, lookups silently fail.
 
 ---
 
-### Result
+## Setup and Usage
 
-- `59.4%` cross-validation accuracy  
-- Model serialized using `joblib` for fast inference
+> **Note:** Live predictions require an active NBA season. Historical model training works year-round, but the prediction engine depends on `ScoreboardV3` returning today's schedule. During the offseason or if the NBA API is rate-limiting, live predictions may return empty results or errors.
 
----
+> **Currently Windows only.** Cross-platform support is planned.
 
-## Session 4: Building the Automated Processor (v2)
+### Requirements
 
-**Objective:**  
-Build `processor.py` to transform raw historical logs into clean matchup differentials.
+- Python 3.10+ ([download](https://www.python.org/downloads/))
+- Check "Add Python to PATH" during installation
 
----
+### Steps
 
-### Key Data Science Decision: EWMA vs Rolling Average
+```bash
+# 1. Navigate to the project folder
+cd "C:\path\to\NBA-ML-Predictor-main"
 
-Used Exponentially Weighted Moving Average (EWMA):
+# 2. Launch the hub
+python main.py
 
-```
-lambda x: x.shift(1).ewm(span=5).mean()
-```
-
-**Why:**  
-- Rolling averages treat all past games equally  
-- EWMA prioritizes recent games → better momentum capture
-
-**Critical Detail:**  
-`.shift(1)` prevents data leakage by ensuring a game never includes its own stats.
-
----
-
-### Engineering Hurdles
-
-**Data Leakage Prevention:**  
-Strict `.shift(1)` implementation to avoid fake accuracy.
-
-**Pipeline Alignment:**  
-- Synced team ID formats
-- Handled NaN values at season starts
-
----
-
-## Session 5: Live API Migration & Pipeline Hardening
-
-**Objective:**  
-Reconnect live NBA API, test real predictions, and build logging system.
-
----
-
-### Engineering Hurdles
-
-**API Deprecation:**  
-`ScoreboardV2` became unreliable.  
-→ Migrated to `ScoreboardV3` (nested JSON parsing required)
-
-**Type-Casting Failures:**  
-- API returns IDs as strings: `"1610612747"`
-- CSV stores integers
-
-**Fix:**  
-```
-int(team_id)
+# 3. Select option 1 (SETUP) -- installs dependencies and trains the model
+# 4. Then use:
+#    2 -- re-sync data and retrain
+#    3 -- check yesterday's picks
+#    4 -- predict tonight's games
+#    5 -- exit
 ```
 
----
-
-### Predictor Logic
-
-- Engine named **NBA_Predictor**
-- `THRESHOLD = 0.65`
-  - `BET` → high-confidence picks
-  - `PASS` → low-confidence games
-
-**Anti-Duplicate Logger:**  
-Prevents duplicate predictions using game ID checks.
+The trained model is not included in the repo. Always run SETUP first.
 
 ---
 
-## Session 6: Crossing the Vegas Baseline
+## Project History
 
-**Objective:**  
-Push model accuracy beyond ~65–67% Vegas baseline.
-
----
-
-### New Features
-
-**eFG% (Effective FG%)**  
-Weights 3-pointers correctly.
-
-**Fatigue Context (`IS_B2B`)**  
-Back-to-back game indicator.
-
-**Multi-Window Averages**  
-- 5-game (short-term)
-- 10-game (medium-term)
-
-**Advanced Context**  
-- `ELO_DIFF` → team strength
-- `ALTITUDE_FLAG` → Denver/Utah impact
-
----
-
-### Engineering Hurdle: Class Imbalance
-
-Home teams win ~58% of games → model bias.
-
-**Fix:** Dynamic class weighting
-
-```python
-neg = (y_train == 0).sum()
-pos = (y_train == 1).sum()
-scale_pos_weight = neg / pos
-```
-
-→ Penalizes missed upsets more heavily
-
----
-
-## Final Status
-
-- Fully automated pipeline
-- Stable live predictions
-- No critical errors
-
-**Final Holdout Accuracy: `69.0%`**  
-→ Successfully exceeds Vegas baseline
+This started as a Random Forest on a static Kaggle CSV (59.4% CV accuracy). That version is archived in `v1_legacy/`. The current version is a full rebuild with live API data, XGBoost, proper feature engineering, and a prediction logging system.
