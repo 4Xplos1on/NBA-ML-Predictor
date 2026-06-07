@@ -1,154 +1,89 @@
 # NBA ML Predictor
 
----
+An end-to-end machine learning pipeline that predicts NBA game outcomes using rolling team differentials, Elo ratings, and fatigue context. Trained on three seasons of live data from the NBA API, it issues high-confidence betting verdicts against a 65% probability threshold.
 
-**Goal:**  
-Build a machine learning pipeline that predicts NBA game outcomes, and actually test whether it works against real Vegas lines.
+Holdout accuracy: **69.0%** (Vegas consensus sits around 65-67% for straight-up winner prediction).
 
-## TL;DR / Executive Summary
-
-**What it is:**  
-An automated, end-to-end Machine Learning pipeline that predicts NBA game outcomes.
-
-**The Engine:**  
-An XGBoost classification model trained on:
-- Rolling differentials  
-- Elo ratings  
-- Fatigue context (back-to-backs, rest days)
-
-**The Result:**  
-`69.0%` holdout accuracy, exceeding the Vegas baseline (~65–67%) by identifying inefficiencies in scheduling fatigue and shooting efficiency.
-
-**Tech Stack:**  
-- Python  
-- Pandas  
-- XGBoost  
-- Scikit-Learn  
-- NBA API
+**Built with:** Python, Pandas, XGBoost, scikit-learn, NBA API
 
 ---
 
-## Project Status
+## How It Works
 
-| Version | Algorithm | Accuracy | Status |
-|---------|-----------|----------|--------|
-| v1 | Random Forest | 59.4% CV | Complete → archived to `v1_legacy/` |
-| v2 (ML Model ) | XGBoost | 69% holdout | Active |
+**Pipeline:** `nba_api-datareq.py` -> `processor.py` -> `nba-predict_v2.py` -> `predictions_log.csv`
 
-**Verdict Logic:**  
-- Issues a `"BET"` verdict only when win probability > `65%`  
-- Focuses on high-confidence predictions over volume  
-- Logs all picks to `predictions_log.csv` with duplicate prevention  
+1. **Data pull** -- Three seasons of game logs (2023-24 through 2025-26) fetched from `stats.nba.com` via `LeagueGameLog`. ~7,300 raw rows become ~3,500 processed matchups.
 
----
+2. **Feature engineering** -- For each matchup, the pipeline computes rolling differentials (home minus away) across 19 features using two time windows:
 
-## How It Started (v1)
+   | Feature | What it captures |
+   |---------|-----------------|
+   | `PTS_DIFF` | Scoring gap (5-game EWMA) |
+   | `REB_DIFF` | Rebounding gap (5-game EWMA) |
+   | `AST_DIFF` | Ball movement gap (5-game EWMA) |
+   | `TOV_DIFF` | Turnover discipline (5-game EWMA) |
+   | `FG_PCT_DIFF` | Shooting efficiency (5-game EWMA) |
+   | `FG3_PCT_DIFF` | 3-point shooting (5-game EWMA) |
+   | `PLUS_MINUS_DIFF` | Net scoring (offense + defense combined) |
+   | `STL_DIFF` | Defensive pressure |
+   | `BLK_DIFF` | Paint protection |
+   | `*_10G_DIFF` | All of the above over a 10-game window |
+   | `REST_DAYS_DIFF` | Rest advantage (back-to-backs matter) |
 
-v1 was a basic Random Forest trained on a static Kaggle CSV. It had hard-coded absolute paths, no live prediction, and used `ScoreboardV2` for game data, which is now deprecated for 2025-26 season data. It got to 59.4% cross-validation accuracy before being archived.
+3. **Model** -- `XGBClassifier` with 300 trees, learning rate 0.03, max depth 5. `scale_pos_weight` is calculated dynamically from class balance to counteract the ~58% home-win base rate.
 
-v2 (ML Model ) is a full rebuild: live data from the NBA API, XGBoost, relative pathing, a proper prediction engine, and a logging system to track real-world accuracy over time.
-
----
-
-## Technical Overview
-
-**v2 Pipeline:**  
-`nba_api-datareq.py` → `processor.py` → `nba-predict_v2.py` → `predictions_log.csv`
-
-**Data:** 3 seasons of live game logs pulled from `stats.nba.com` via `LeagueGameLog` (2023-24, 2024-25, 2025-26). Raw data: ~7,300 rows. Processed matchups: ~3,500 rows.
-
-**Model:** `XGBClassifier` 300 trees, learning rate 0.03, max depth 5. `scale_pos_weight` dynamically calculated from class balance to prevent the model from defaulting to "home win" on every prediction.
-
-**Live Prediction:** Uses `ScoreboardV3` (migrated from deprecated `ScoreboardV2`) to fetch today's games, looks up each team's rolling stats from the processed CSV, and outputs a probability + BET/PASS verdict.
+4. **Prediction** -- Fetches today's games via `ScoreboardV3`, looks up each team's current rolling stats, and outputs a win probability. Games above the 65% confidence threshold get a `BET` verdict; everything else gets `PASS`. All picks are logged to `predictions_log.csv` with duplicate prevention.
 
 ---
 
-## Features
+## Technical Decisions Worth Noting
 
-| Feature | What It Captures |
-|---------|-----------------|
-| `PTS_DIFF` | Scoring gap, 5-game EWMA |
-| `REB_DIFF` | Rebounding gap, 5-game EWMA |
-| `AST_DIFF` | Ball movement gap, 5-game EWMA |
-| `TOV_DIFF` | Turnover discipline gap, 5-game EWMA |
-| `FG_PCT_DIFF` | Shooting efficiency gap, 5-game EWMA |
-| `FG3_PCT_DIFF` | 3-point shooting gap, 5-game EWMA |
-| `PLUS_MINUS_DIFF` | Net scoring gap (offense + defense in one number) |
-| `STL_DIFF` | Defensive pressure gap |
-| `BLK_DIFF` | Paint protection gap |
-| `*_10G_DIFF` | Same stats over 10-game window (medium-term form) |
-| `REST_DAYS_DIFF` | Rest advantage: back-to-backs heavily impact performance |
+**Differentials over raw stats.** Comparing Team A vs Team B directly is more predictive than feeding isolated team numbers. The model learns matchup dynamics, not team identities.
 
-Total: 19 features across two rolling windows + rest.
+**EWMA over simple rolling averages.** Exponentially weighted moving averages put more weight on recent games. A team coming off a 4-1 streak reads differently than one that went 4-1 two months ago.
+
+**Chronological train/test split.** Sports data is time-ordered. Random shuffling for train/test would let the model train on future games to predict the past. That's data leakage, not accuracy.
+
+**`.shift(1)` to prevent same-game leakage.** Every rolling average is shifted forward one row so a game's own stats never appear in its own features. Without this, accuracy looks great but the model is cheating.
+
+**Dynamic class weighting.** Home teams win ~58% of NBA games. Without correction, the model learns to just predict "home win" every time. `scale_pos_weight = neg_count / pos_count` penalizes missed upsets proportionally.
+
+**ScoreboardV3 migration.** The original `ScoreboardV2` endpoint was deprecated for 2025-26 data. V3 returns nested JSON (`['scoreboard']['games']`) instead of flat DataFrames, which required rewriting the game-fetching logic. Team IDs also come back as strings instead of integers -- without explicit `int()` casting, lookups silently fail.
 
 ---
 
-## Key Technical Insights
+## Setup and Usage
 
-**Differentials > Raw Stats:**  
-Comparing Team A vs Team B directly is more predictive than isolated numbers. Relative performance captures the actual matchup.
+> **Note:** Live predictions require an active NBA season. Historical model training works year-round, but the prediction engine depends on `ScoreboardV3` returning today's schedule. During the offseason or if the NBA API is rate-limiting, live predictions may return empty results or errors.
 
-**EWMA > Simple Rolling:**  
-Exponentially Weighted Moving Average weights recent games more heavily. A team that just went 4-1 after a cold streak reads differently than a team that went 4-1 two months ago.
-
-**Chronological Splits:**  
-Sports data cannot be randomly shuffled for train/test splits. Training on future games to predict the past is data leakage, split by date instead.
-
-**`.shift(1)` Prevents Leakage:**  
-The rolling average is shifted forward one row so a game never includes its own stats when the model trains. Without this, accuracy looks inflated but the model is cheating.
-
-**ScoreboardV3 vs V2:**  
-V3 returns nested JSON (`['scoreboard']['games']`) instead of a flat dataframe. Required rewriting the team ID lookup loop entirely.
-
-**String vs Integer IDs:**  
-The NBA API returns team IDs as strings. The processed CSV stores them as integers. Without explicit `int()` casting, lookups silently fail with "Matchup stats not found."
-
----
-
-## How to Run ( WORKS ONLY ON WINDOWS RIGHT NOW)
+> **Currently Windows only.** Cross-platform support is planned.
 
 ### Requirements
-- Python 3.10 or higher [download here](https://www.python.org/downloads/)
 
-> During installation, check **"Add Python to PATH"**, without this, none of the commands below will work.
+- Python 3.10+ ([download](https://www.python.org/downloads/))
+- Check "Add Python to PATH" during installation
 
----
+### Steps
 
-**1. Download and extract the zip, open PowerShell or Terminal, and navigate to the folder:**
 ```bash
+# 1. Navigate to the project folder
 cd "C:\path\to\NBA-ML-Predictor-main"
-```
 
-**2. Launch the hub:**
-```bash
+# 2. Launch the hub
 python main.py
+
+# 3. Select option 1 (SETUP) -- installs dependencies and trains the model
+# 4. Then use:
+#    2 -- re-sync data and retrain
+#    3 -- check yesterday's picks
+#    4 -- predict tonight's games
+#    5 -- exit
 ```
 
-**3. Select option `1` (SETUP): installs everything and trains the model. Takes a few minutes.**
-
-**4. After setup, pick what you want to do:**
-- `2` — re-sync data and re-train
-- `3` — check yesterday's picks
-- `4` — predict tonight's games
-- `5` — exit
-
-> The trained model isn't included in the download. Always run option `1` first.
+The trained model is not included in the repo. Always run SETUP first.
 
 ---
 
-## Real-World Context
+## Project History
 
-The ML Model started as a simple model, flagging picks on the Wizards and Celtics in April 2026 that Vegas was fading due to resting players. After expanding the feature set to include eFG%, win streaks, back-to-back flags, ELO ratings, and a 10-game rolling window, the model crossed some of the Vegas baselines.
-
-Vegas consensus accuracy: ~65–67%  
-The ML Model  holdout accuracy: **69%**
-
----
-
-## Summary
-
-- End-to-end ML pipeline operational  
-- Live predictions with BET/PASS verdict and confidence threshold  
-- Persistent logging with duplicate prevention  
-- v1 archived, v2 (ML Model ) active  
-- Benchmark: 69% holdout: above the some of the Vegas baselines 65–67% 
+This started as a Random Forest on a static Kaggle CSV (59.4% CV accuracy). That version is archived in `v1_legacy/`. The current version is a full rebuild with live API data, XGBoost, proper feature engineering, and a prediction logging system.
